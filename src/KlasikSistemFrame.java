@@ -133,8 +133,11 @@ public class KlasikSistemFrame extends JFrame implements ActionListener {
     @Override
     public void actionPerformed(ActionEvent e) {
         try {
-            double vize = Double.parseDouble(vizeField.getText().trim());
+            String vizeText = vizeField.getText().trim();
             String finalText = finalField.getText().trim();
+
+            // Vize boşsa 0, değilse girilen değer
+            Double vize = vizeText.isEmpty() ? null : Double.parseDouble(vizeText);
             Double finalNotu = finalText.isEmpty() ? null : Double.parseDouble(finalText);
 
             double ddEsik = Double.parseDouble(ddField.getText().trim());
@@ -145,7 +148,7 @@ public class KlasikSistemFrame extends JFrame implements ActionListener {
             double baEsik = Double.parseDouble(baField.getText().trim());
             double aaEsik = Double.parseDouble(aaField.getText().trim());
 
-            if (!NotHesaplayici.notGecerliMi(vize)) {
+            if (vize != null && !NotHesaplayici.notGecerliMi(vize)) {
                 sonucArea.setText("❌ Vize notu 0-100 arasında olmalıdır!");
                 return;
             }
@@ -155,37 +158,61 @@ public class KlasikSistemFrame extends JFrame implements ActionListener {
                 return;
             }
 
-            double vizeKatkisi = vize * 0.40;
-
             StringBuilder sb = new StringBuilder();
             sb.append("═══════════════════════════════════════════════\n");
             sb.append("                  DURUM ANALİZİ                \n");
             sb.append("═══════════════════════════════════════════════\n\n");
 
-            sb.append(String.format("📝 Vize Notunuz: %.2f (Katkı: %.2f puan)\n", vize, vizeKatkisi));
+            // Vize girilmedi ama final girildi - senaryo analizi
+            if (vize == null && finalNotu != null) {
+                sb.append("⚠️ Vize notu girilmedi - Senaryo Analizi\n");
+                sb.append(String.format("📝 Final Notunuz: %.2f\n\n", finalNotu));
 
-            if (finalNotu != null) {
-                double toplam = vizeKatkisi + (finalNotu * 0.60);
-                String mevcutHarf = getHarfNotu(toplam, ddEsik, dcEsik, ccEsik, cbEsik, bbEsik, baEsik, aaEsik);
+                sb.append("───────────────────────────────────────────────\n");
+                sb.append("   VİZE NOTUNA GÖRE HARF NOTU SENARYOLARI     \n");
+                sb.append("───────────────────────────────────────────────\n\n");
 
-                sb.append(String.format("📝 Final Notunuz: %.2f (Katkı: %.2f puan)\n", finalNotu, finalNotu * 0.60));
-                sb.append(String.format("📊 Toplam Puanınız: %.2f\n", toplam));
-                sb.append(String.format("🎓 Mevcut Harf Notunuz: %s\n\n", mevcutHarf));
-            } else {
-                sb.append("📝 Final Notu: Henüz girilmedi\n\n");
+                // Farklı vize senaryoları
+                int[] vizeSenaryolari = { 0, 20, 30, 40, 50, 60, 70, 80, 90, 100 };
+                for (int vizeSenaryo : vizeSenaryolari) {
+                    double toplam = (vizeSenaryo * 0.40) + (finalNotu * 0.60);
+                    String harf = getHarfNotu(toplam, ddEsik, dcEsik, ccEsik, cbEsik, bbEsik, baEsik, aaEsik);
+                    sb.append(String.format("📌 Vize %3d olsaydı → Toplam: %5.2f → %s\n", vizeSenaryo, toplam, harf));
+                }
             }
+            // Normal hesaplama - vize girildi
+            else if (vize != null) {
+                double vizeKatkisi = vize * 0.40;
+                sb.append(String.format("📝 Vize Notunuz: %.2f (Katkı: %.2f puan)\n", vize, vizeKatkisi));
 
-            sb.append("───────────────────────────────────────────────\n");
-            sb.append("   HER HARF NOTU İÇİN GEREKLİ FİNAL NOTU      \n");
-            sb.append("───────────────────────────────────────────────\n\n");
+                if (finalNotu != null) {
+                    double toplam = vizeKatkisi + (finalNotu * 0.60);
+                    String mevcutHarf = getHarfNotu(toplam, ddEsik, dcEsik, ccEsik, cbEsik, bbEsik, baEsik, aaEsik);
 
-            sb.append(hesaplaGerekliFinnal("DD", ddEsik, vizeKatkisi));
-            sb.append(hesaplaGerekliFinnal("DC", dcEsik, vizeKatkisi));
-            sb.append(hesaplaGerekliFinnal("CC", ccEsik, vizeKatkisi));
-            sb.append(hesaplaGerekliFinnal("CB", cbEsik, vizeKatkisi));
-            sb.append(hesaplaGerekliFinnal("BB", bbEsik, vizeKatkisi));
-            sb.append(hesaplaGerekliFinnal("BA", baEsik, vizeKatkisi));
-            sb.append(hesaplaGerekliFinnal("AA", aaEsik, vizeKatkisi));
+                    sb.append(
+                            String.format("📝 Final Notunuz: %.2f (Katkı: %.2f puan)\n", finalNotu, finalNotu * 0.60));
+                    sb.append(String.format("📊 Toplam Puanınız: %.2f\n", toplam));
+                    sb.append(String.format("🎓 Mevcut Harf Notunuz: %s\n\n", mevcutHarf));
+                } else {
+                    sb.append("📝 Final Notu: Henüz girilmedi\n\n");
+                }
+
+                sb.append("───────────────────────────────────────────────\n");
+                sb.append("   HER HARF NOTU İÇİN GEREKLİ FİNAL NOTU      \n");
+                sb.append("───────────────────────────────────────────────\n\n");
+
+                sb.append(hesaplaGerekliFinnal("DD", ddEsik, vizeKatkisi));
+                sb.append(hesaplaGerekliFinnal("DC", dcEsik, vizeKatkisi));
+                sb.append(hesaplaGerekliFinnal("CC", ccEsik, vizeKatkisi));
+                sb.append(hesaplaGerekliFinnal("CB", cbEsik, vizeKatkisi));
+                sb.append(hesaplaGerekliFinnal("BB", bbEsik, vizeKatkisi));
+                sb.append(hesaplaGerekliFinnal("BA", baEsik, vizeKatkisi));
+                sb.append(hesaplaGerekliFinnal("AA", aaEsik, vizeKatkisi));
+            }
+            // İkisi de boş
+            else {
+                sb.append("❌ Lütfen en az bir not girin!\n");
+            }
 
             sb.append("\n═══════════════════════════════════════════════\n");
 
