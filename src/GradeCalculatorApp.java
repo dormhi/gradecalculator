@@ -33,10 +33,10 @@ public class GradeCalculatorApp extends JFrame {
         // Language toggle button
         JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         topPanel.setBackground(ThemeManager.BG_DARK);
-        topPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+        topPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 55));
 
-        JButton langButton = createLanguageButton();
-        topPanel.add(langButton);
+        JPanel langSelector = createLanguageSelector();
+        topPanel.add(langSelector);
         mainPanel.add(topPanel);
 
         // Logo/Icon area
@@ -110,58 +110,174 @@ public class GradeCalculatorApp extends JFrame {
         setVisible(true);
     }
 
-    private JButton createLanguageButton() {
-        String flag = lang.getCurrentLanguage().getFlag();
-        JButton button = new JButton(flag) {
+    private JPanel createLanguageSelector() {
+        JPanel container = new JPanel();
+        container.setLayout(new BoxLayout(container, BoxLayout.X_AXIS));
+        container.setOpaque(false);
+
+        // Create the toggle panel with rounded background
+        JPanel togglePanel = new JPanel(new GridBagLayout()) {
             @Override
-            protected void paintComponent(java.awt.Graphics g) {
-                java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
-                g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING,
-                        java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(getBackground());
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 15, 15);
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+                // Outer container with gradient background
+                GradientPaint gradient = new GradientPaint(
+                        0, 0, new Color(31, 41, 55),
+                        getWidth(), 0, new Color(45, 55, 72));
+                g2.setPaint(gradient);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 20, 20);
+
+                // Subtle border glow
+                g2.setColor(new Color(75, 85, 99, 100));
+                g2.setStroke(new BasicStroke(1.5f));
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 20, 20);
+
                 g2.dispose();
                 super.paintComponent(g);
             }
         };
-        button.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 20));
-        button.setBackground(ThemeManager.BG_CARD);
-        button.setForeground(ThemeManager.TEXT_PRIMARY);
-        button.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
-        button.setFocusPainted(false);
-        button.setContentAreaFilled(false);
-        button.setOpaque(false);
-        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        button.setToolTipText(lang.getCurrentLanguage() == LanguageManager.Language.TURKISH
-                ? "Switch to English"
-                : "Türkçe'ye geç");
+        togglePanel.setOpaque(false);
+        togglePanel.setBorder(BorderFactory.createEmptyBorder(4, 4, 4, 4));
 
-        // Hover effect
-        button.addMouseListener(new java.awt.event.MouseAdapter() {
-            Color originalBg = ThemeManager.BG_CARD;
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(0, 2, 0, 2);
+
+        // Turkish option
+        JPanel trOption = createLanguageOption("🇹🇷", "TR", LanguageManager.Language.TURKISH);
+        gbc.gridx = 0;
+        togglePanel.add(trOption, gbc);
+
+        // English option
+        JPanel enOption = createLanguageOption("🇬🇧", "EN", LanguageManager.Language.ENGLISH);
+        gbc.gridx = 1;
+        togglePanel.add(enOption, gbc);
+
+        container.add(togglePanel);
+        return container;
+    }
+
+    private JPanel createLanguageOption(String flag, String code, LanguageManager.Language language) {
+        boolean isSelected = lang.getCurrentLanguage() == language;
+
+        JPanel option = new JPanel(new FlowLayout(FlowLayout.CENTER, 6, 4)) {
+            private boolean hovered = false;
+            private float animationProgress = isSelected ? 1f : 0f;
 
             @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+                boolean currentlySelected = lang.getCurrentLanguage() == language;
+
+                if (currentlySelected) {
+                    // Selected state - vibrant gradient
+                    GradientPaint selectedGradient = new GradientPaint(
+                            0, 0, ThemeManager.PRIMARY,
+                            getWidth(), getHeight(), new Color(99, 102, 241));
+                    g2.setPaint(selectedGradient);
+                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 14, 14);
+
+                    // Glow effect
+                    g2.setColor(new Color(79, 70, 229, 60));
+                    g2.setStroke(new BasicStroke(2f));
+                    g2.drawRoundRect(-1, -1, getWidth() + 1, getHeight() + 1, 16, 16);
+                } else if (hovered) {
+                    // Hover state
+                    g2.setColor(new Color(55, 65, 81, 180));
+                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 14, 14);
+
+                    // Subtle border on hover
+                    g2.setColor(new Color(107, 114, 128, 100));
+                    g2.setStroke(new BasicStroke(1f));
+                    g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 14, 14);
+                }
+
+                g2.dispose();
+                super.paintComponent(g);
+            }
+
+            public void setHovered(boolean hovered) {
+                this.hovered = hovered;
+                repaint();
+            }
+
+            public boolean isHovered() {
+                return hovered;
+            }
+        };
+
+        option.setOpaque(false);
+        option.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        option.setPreferredSize(new Dimension(70, 36));
+
+        // Flag label with larger emoji
+        JLabel flagLabel = new JLabel(flag);
+        flagLabel.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 18));
+        option.add(flagLabel);
+
+        // Language code with modern font
+        JLabel codeLabel = new JLabel(code);
+        codeLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        codeLabel.setForeground(isSelected ? Color.WHITE : ThemeManager.TEXT_SECONDARY);
+        option.add(codeLabel);
+
+        // Store reference for updates
+        option.putClientProperty("language", language);
+        option.putClientProperty("codeLabel", codeLabel);
+
+        // Mouse interactions
+        option.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
             public void mouseEntered(java.awt.event.MouseEvent e) {
-                button.setBackground(ThemeManager.PRIMARY);
-                button.repaint();
+                try {
+                    java.lang.reflect.Method setHovered = option.getClass().getMethod("setHovered", boolean.class);
+                    setHovered.invoke(option, true);
+                } catch (Exception ex) {
+                    option.repaint();
+                }
             }
 
             @Override
             public void mouseExited(java.awt.event.MouseEvent e) {
-                button.setBackground(originalBg);
-                button.repaint();
+                try {
+                    java.lang.reflect.Method setHovered = option.getClass().getMethod("setHovered", boolean.class);
+                    setHovered.invoke(option, false);
+                } catch (Exception ex) {
+                    option.repaint();
+                }
+            }
+
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                if (lang.getCurrentLanguage() != language) {
+                    lang.setLanguage(language);
+
+                    // Update all language options in parent
+                    Container parent = option.getParent();
+                    if (parent != null) {
+                        for (Component comp : parent.getComponents()) {
+                            if (comp instanceof JPanel) {
+                                JPanel optionPanel = (JPanel) comp;
+                                LanguageManager.Language optLang = (LanguageManager.Language) optionPanel
+                                        .getClientProperty("language");
+                                JLabel optCodeLabel = (JLabel) optionPanel.getClientProperty("codeLabel");
+
+                                if (optLang != null && optCodeLabel != null) {
+                                    boolean selected = optLang == language;
+                                    optCodeLabel.setForeground(selected ? Color.WHITE : ThemeManager.TEXT_SECONDARY);
+                                }
+                                optionPanel.repaint();
+                            }
+                        }
+                    }
+                }
             }
         });
 
-        button.addActionListener(e -> {
-            lang.toggleLanguage();
-            button.setText(lang.getCurrentLanguage().getFlag());
-            button.setToolTipText(lang.getCurrentLanguage() == LanguageManager.Language.TURKISH
-                    ? "Switch to English"
-                    : "Türkçe'ye geç");
-        });
-
-        return button;
+        return option;
     }
 
     private void setupLanguageListener() {
